@@ -1,0 +1,114 @@
+<script>
+  // --- Initialize map ---
+  const map = L.map('map').setView([51.45, -0.85], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // --- Add search bar ---
+  L.Control.geocoder({
+    defaultMarkGeocode: true,
+    placeholder: "Search towns or postcodes...",
+    collapsed: false
+  }).addTo(map);
+
+  // --- Layer groups ---
+  const clientLayer = L.layerGroup().addTo(map);
+  const clinicLayer = L.layerGroup().addTo(map);
+
+  // --- API credentials and URL ---
+  const API_URL = "/api/clients";
+
+  const url = `${API_URL}?pct=${pct}&from_date=${start}&to_date=${end}`;
+  const res = await fetch(url);
+
+  // --- Load CLINICS (static once) ---
+  async function loadClinics() {
+    const res = await fetch("data/clinics_geo.csv"); // still local for now
+    const csv = await res.text();
+    const data = Papa.parse(csv, { header: true }).data;
+    data.forEach(row => {
+      if (row.latitude && row.longitude) {
+        const isGP = row.type?.toLowerCase() === "gp";
+        const color = isGP ? "#e60026" : "#6a0dad";
+        const label = isGP ? "GP Surgery" : "Clinic";
+
+        const marker = L.circleMarker([+row.latitude, +row.longitude], {
+          radius: 7,
+          color,
+          fillColor: color,
+          fillOpacity: 0.9,
+          weight: 1
+        }).bindTooltip(
+          `<b>${row.name}</b><br>${label}<br>${row.postcode}`,
+          { permanent: false, direction: "top", offset: [0, -5] }
+        );
+        marker.addTo(clinicLayer);
+      }
+    });
+  }
+
+  loadClinics(); // run once
+
+  // --- Fetch clients from API ---
+  async function loadClients() {
+    const start = document.getElementById("startDate").value || "2023-01-01";
+    const end = document.getElementById("endDate").value || "2025-11-13";
+    const pct = document.getElementById("pctFilter").value || "All Regions";
+
+    const url = `${API_URL}?from_date=${start}&to_date=${end}&pct=${encodeURIComponent(pct)}`;
+
+    const res = await fetch(url, {
+      headers: {
+        "Authorization": "Basic " + btoa(`${API_USER}:${API_PASS}`)
+      }
+    });
+
+    if (!res.ok) {
+      alert("Error fetching data: " + res.status);
+      return;
+    }
+
+    const geojson = await res.json();
+    renderClients(geojson.features);
+  }
+
+  // --- Render clients on the map ---
+  function renderClients(features) {
+    clientLayer.clearLayers();
+    features.forEach(f => {
+      const [lon, lat] = f.geometry.coordinates;
+      const p = f.properties;
+
+      const marker = L.circleMarker([lat, lon], {
+        radius: 4,
+        color: "#0077ff",
+        fillColor: "#0077ff",
+        fillOpacity: 0.8,
+        weight: 1
+      }).bindPopup(
+        `<b>Client</b><br>Postcode: ${p.postcode || "N/A"}<br>PCT: ${p.pct}<br>Date: ${p.date}<br>ID: ${p.clientid}`
+      );
+      marker.addTo(clientLayer);
+    });
+  }
+
+  // --- Apply Filters button ---
+  document.getElementById("applyFilters").addEventListener("click", loadClients);
+
+  // --- Initial load ---
+  loadClients();
+
+  // --- Legend ---
+  const legend = L.control({ position: "bottomright" });
+  legend.onAdd = function () {
+    const div = L.DomUtil.create("div", "legend");
+    div.innerHTML = `
+      <i style="background:#e60026"></i> GP Surgeries<br>
+      <i style="background:#6a0dad"></i> Clinics<br>
+      <i style="background:#0077ff"></i> Clients
+    `;
+    return div;
+  };
+  legend.addTo(map);
+</script>
