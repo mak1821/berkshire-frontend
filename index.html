@@ -1,4 +1,76 @@
-<script type="module">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Berkshire Clinics and Clients Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet + Geocoder -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    .legend {
+      background: white;
+      padding: 6px 8px;
+      font: 14px/16px Arial;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      line-height: 18px;
+    }
+    .legend i {
+      width: 12px;
+      height: 12px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      z-index: 1000;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-family: Arial;
+    }
+    #controls label { margin: 0 5px; }
+    #controls select, #controls input, #controls button {
+      margin-right: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Filter Controls -->
+  <div id="controls">
+    <label>From:</label>
+    <input type="date" id="startDate">
+    <label>To:</label>
+    <input type="date" id="endDate">
+    <label>PCT:</label>
+    <select id="pctFilter">
+      <option value="All Regions">All Regions</option>
+      <option value="Bracknell">Bracknell</option>
+      <option value="Reading">Reading</option>
+      <option value="West Berkshire">West Berkshire</option>
+      <option value="Windsor Ascot And Maidenhead">Windsor Ascot And Maidenhead</option>
+      <option value="Wokingham">Wokingham</option>
+    </select>
+    <button id="applyFilters">Apply</button>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <script>
   // --- Initialize map ---
   const map = L.map('map').setView([51.45, -0.85], 10);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -17,9 +89,10 @@
   const clinicLayer = L.layerGroup().addTo(map);
 
   // --- API credentials and URL ---
-  const API_URL = "/api/clients";
-  const url = `${API_URL}?pct=${pct}&from_date=${start}&to_date=${end}`;
-  const res = await fetch(url);
+const API_URL = "/api/clients";
+
+const url = `${API_URL}?pct=${pct}&from_date=${start}&to_date=${end}`;
+const res = await fetch(url);
 
   // --- Load CLINICS (static once) ---
   async function loadClinics() {
@@ -111,3 +184,5 @@
   };
   legend.addTo(map);
 </script>
+</body>
+</html>
