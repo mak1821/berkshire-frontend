@@ -122,27 +122,28 @@ const res = await fetch(url);
 
   loadClinics(); // run once
 
+
   // --- Fetch clients from API ---
-  async function loadClients() {
+    async function loadClients() {
     const start = document.getElementById("startDate").value || "2023-01-01";
     const end = document.getElementById("endDate").value || "2025-11-13";
     const pct = document.getElementById("pctFilter").value || "All Regions";
 
-    const url = `${API_URL}?from_date=${start}&to_date=${end}&pct=${encodeURIComponent(pct)}`;
+    const url = `/api/clients?pct=${encodeURIComponent(pct)}&from_date=${start}&to_date=${end}`;
 
-    const res = await fetch(url, {
-      headers: {
-        "Authorization": "Basic " + btoa(`${API_USER}:${API_PASS}`)
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error("Failed to fetch data:", res.status);
+        alert("Error fetching data: " + res.status);
+        return;
       }
-    });
-
-    if (!res.ok) {
-      alert("Error fetching data: " + res.status);
-      return;
+      const geojson = await res.json();
+      renderClients(geojson.features);
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      alert("Network or API error");
     }
-
-    const geojson = await res.json();
-    renderClients(geojson.features);
   }
 
   // --- Render clients on the map ---
